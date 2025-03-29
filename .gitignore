@@ -1,3 +1,10 @@
+#
+.history/
+.cache/
+*instruments.wav
+*vocal.wav
+sample/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
