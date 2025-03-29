@@ -1,7 +1,3 @@
-Here's a revised version of your README draft in more fluent English:
-
----
-
 # InstrumentalExtraction
 
 This project is based on the code originally created by the contributor [seanghay][1].
