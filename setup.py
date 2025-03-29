@@ -19,7 +19,6 @@ setuptools.setup(
         'resampy==0.4.3',
         'scipy==1.15.2',
         'soundfile==0.13.1',
-        'torch==2.6.0',
         'tqdm==4.67.1',
     ],
     author="Greg",
