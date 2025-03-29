@@ -6,7 +6,7 @@ import numpy
 import threading
 import tqdm
 import scipy.io
-import core
+import architecture
 
 parameter = {
     'bins': 672, 'unstable_bins': 8, 'reduction_bins': 637, 
@@ -228,7 +228,7 @@ class Engine:
         return
     
     def loadModel(self) -> bool:
-        model = core.architecture.CascadedASPPNet(parameter['bins'] * 2)
+        model = architecture.CascadedASPPNet(parameter['bins'] * 2)
         archive = torch.load(self.checkpoint, map_location='cpu')
         model.load_state_dict(archive)
         model.eval()

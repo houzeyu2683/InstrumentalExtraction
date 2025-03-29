@@ -5,14 +5,10 @@ setuptools.setup(
     name=name,
     version="0.1.0",
     packages=[
-        'InstrumentalExtraction',
-        'InstrumentalExtraction.machine',
-        'InstrumentalExtraction.architecture'
+        'InstrumentalExtraction'
     ],
     package_dir={
-        'InstrumentalExtraction': 'core',
-        'InstrumentalExtraction.machine': 'core/machine',
-        'InstrumentalExtraction.architecture': 'core/architecture'
+        'InstrumentalExtraction': 'machine'
     },
     install_requires=[
         'gdown==5.2.0',

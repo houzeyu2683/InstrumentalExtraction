@@ -1,6 +1,6 @@
 import InstrumentalExtraction
 
-engine = InstrumentalExtraction.machine.Engine(
+engine = InstrumentalExtraction.Engine(
     checkpoint='./.cache/weight.pth', 
     device='cuda', 
     half=True, 
