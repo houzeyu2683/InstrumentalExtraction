@@ -1,2 +1,2 @@
-from core import architecture
-from core import machine
+import architecture
+import machine
