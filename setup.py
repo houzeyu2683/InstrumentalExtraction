@@ -6,12 +6,10 @@ setuptools.setup(
     version="0.1.0",
     packages=[
         'InstrumentalExtraction', 
-        'InstrumentalExtraction.architecture', 
         'InstrumentalExtraction.machine'
     ],
     package_dir={
         'InstrumentalExtraction': '.', 
-        'InstrumentalExtraction.architecture': 'architecture', 
         'InstrumentalExtraction.machine': 'machine'
     },
     install_requires=[
@@ -20,6 +18,8 @@ setuptools.setup(
         'scipy==1.15.2',
         'soundfile==0.13.1',
         'tqdm==4.67.1',
+        'torch==2.6.0',
+        'librosa==0.11.0'
     ],
     author="Greg",
     author_email="houzeyu2683@gmail.com",
