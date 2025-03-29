@@ -1,6 +1,6 @@
 import setuptools
-name = "InstrumentalExtraction"
 
+name = "InstrumentalExtraction"
 setuptools.setup(
     name=name,
     version="0.1.0",
@@ -8,14 +8,20 @@ setuptools.setup(
         'InstrumentalExtraction', 
         'InstrumentalExtraction.architecture', 
         'InstrumentalExtraction.machine'
-    ],  # 查找所有子包（包括 coreA 和 coreB）
-    # package_dir=direction,
+    ],
     package_dir={
         'InstrumentalExtraction': '.', 
         'InstrumentalExtraction.architecture': 'architecture', 
         'InstrumentalExtraction.machine': 'machine'
     },
-    install_requires=[],
+    install_requires=[
+        'gdown==5.2.0',
+        'resampy==0.4.3',
+        'scipy==1.15.2',
+        'soundfile==0.13.1',
+        'torch==2.6.0',
+        'tqdm==4.67.1',
+    ],
     author="Greg",
     author_email="houzeyu2683@gmail.com",
     description="",
