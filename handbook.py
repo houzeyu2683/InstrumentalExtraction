@@ -1,5 +1,4 @@
-import InstrumentalExtraction
-InstrumentalExtraction.machine
+import InstrumentalExtraction.machine
 
 engine = InstrumentalExtraction.machine.Engine(
     checkpoint='./.cache/weight.pth', 
