@@ -1,10 +1,12 @@
 import InstrumentalExtraction
+InstrumentalExtraction.machine
 
-engine = InstrumentalExtraction.Engine(
+engine = InstrumentalExtraction.machine.Engine(
     checkpoint='./.cache/weight.pth', 
     device='cuda', 
     half=True, 
-    storage='./sample'
+    storage='sample'
 )
 _ = engine.loadModel()
 engine.inferVoice('./sample/News.wav')
+

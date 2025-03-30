@@ -1,15 +1,14 @@
 import setuptools
+setuptools.find_packages('.')
 
 name = "InstrumentalExtraction"
 setuptools.setup(
     name=name,
     version="0.1.0",
-    packages=[
-        'InstrumentalExtraction'
-    ],
-    package_dir={
-        'InstrumentalExtraction': 'machine'
-    },
+    packages=setuptools.find_packages('.'),
+    # package_dir={
+    #     '': '..'
+    # },
     install_requires=[
         'gdown==5.2.0',
         'resampy==0.4.3',
