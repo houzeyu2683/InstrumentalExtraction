@@ -1,9 +1,8 @@
 #
-.history/
-.cache/
-*instruments.wav
-*vocal.wav
-sample/
+.bk
+*.mp4
+*.mkv
+*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
