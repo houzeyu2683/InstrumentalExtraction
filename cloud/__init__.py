@@ -1,3 +1,3 @@
 from ._hub_ import *
 
-__all__ = [Hub]
+__all__ = ['Hub']

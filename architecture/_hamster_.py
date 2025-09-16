@@ -1,7 +1,7 @@
 import torch
 import math
 import block
-
+import einops
 class Hamster(torch.nn.Module):
     
     def __init__(self, device: str) -> None:
@@ -10,67 +10,175 @@ class Hamster(torch.nn.Module):
         return
     
     def initiateLayer(self) -> bool:
-        position = block.Position(
-            length=750, 
-            dimension=320, 
-            trainable=True, 
-            device=self.device
-        )
-        attention = block.Attention(
-            embedding=320, 
-            head=8, 
-            causal=True, 
-            device=self.device
-        )
-        edge = block.Edge(device=self.device)
-        position.initiateLayer()
-        attention.initiateLayer()
-        edge.initiateLayer()
-        layer = {
-            '(1) position': position,
-            '(2) attention': attention,
-            '(3) edge': edge
-        }
+        layer = {}
+        if('1'): # 128 -> 64
+            tunnel = (3, 64)
+            tag = f'(1) convolution'
+            part = block.Convolution(
+                tunnel=tunnel, group=8, inverse=False, device=self.device
+            )
+            part.initiateLayer()
+            layer[tag] = part
+            tag = f'(1) embedding'
+            length = 1500+1
+            dimension = tunnel[-1]
+            part = block.Embedding(
+                length=length, dimension=dimension, device=self.device
+            )
+            part.initiateLayer()
+            layer[tag] = part
+            pass
+        if('2'): # 64 -> 32
+            tunnel = (64, 128)
+            tag = f'(2) convolution'
+            part = block.Convolution(
+                tunnel=tunnel, group=8, inverse=False, device=self.device
+            )
+            part.initiateLayer()
+            layer[tag] = part
+            tag = f'(2) embedding'
+            length = 1500+1
+            dimension = tunnel[-1]
+            part = block.Embedding(
+                length=length, dimension=dimension, device=self.device
+            )
+            part.initiateLayer()
+            layer[tag] = part
+            pass
+        if('3'): # 32 -> 16
+            tunnel = (128, 256)
+            tag = f'(3) convolution'
+            part = block.Convolution(
+                tunnel=tunnel, group=8, inverse=False, device=self.device
+            )
+            part.initiateLayer()
+            layer[tag] = part
+            tag = f'(3) embedding'
+            length = 1500+1
+            dimension = tunnel[-1]
+            part = block.Embedding(
+                length=length, dimension=dimension, device=self.device
+            )
+            part.initiateLayer()
+            layer[tag] = part
+            pass
+        if('4'): 
+            tag = f'(4) position'
+            part = block.Position(
+                length=256, 
+                dimension=256, 
+                trainable=True, 
+                device=self.device
+            )
+            part.initiateLayer()
+            layer[tag] = part
+            pass
+        if('5'):
+            tag = f'(5) attention'
+            part = block.Attention(embedding=256, head=8, causal=False, device=self.device)
+            part.initiateLayer()
+            layer[tag] = part
+            pass
+        if('6'): # 16 -> 32
+            tunnel = (256, 128)
+            tag = f'(6) convolution'
+            part = block.Convolution(
+                tunnel=tunnel, group=8, inverse=True, device=self.device
+            )
+            part.initiateLayer()
+            layer[tag] = part
+            tag = f'(6) embedding'
+            length = 1500+1
+            dimension = tunnel[-1]
+            part = block.Embedding(
+                length=length, dimension=dimension, device=self.device
+            )
+            part.initiateLayer()
+            layer[tag] = part
+            pass
+        if('7'): # 32 -> 64
+            tunnel = (128+128, 64)
+            tag = f'(7) convolution'
+            part = block.Convolution(
+                tunnel=tunnel, group=8, inverse=True, device=self.device
+            )
+            part.initiateLayer()
+            layer[tag] = part
+            tag = f'(7) embedding'
+            length = 1500+1
+            dimension = tunnel[-1]
+            part = block.Embedding(
+                length=length, dimension=dimension, device=self.device
+            )
+            part.initiateLayer()
+            layer[tag] = part
+            pass
+        if('8'): # 64 -> 128
+            tunnel = (64+64, 3)
+            tag = f'(8) convolution'
+            part = block.Convolution(
+                tunnel=tunnel, group=1, inverse=True, device=self.device
+            )
+            part.initiateLayer()
+            layer[tag] = part
+            tag = f'(8) embedding'
+            length = 1500+1
+            dimension = tunnel[-1]
+            part = block.Embedding(
+                length=length, dimension=dimension, device=self.device
+            )
+            part.initiateLayer()
+            layer[tag] = part
+            pass
+        if('9'):
+            tag = f'(9) projection'
+            part = torch.nn.Conv2d(3, 3, 1)
+            layer[tag] = part
+            pass
+        if('10'):
+            tag = f'(10) projection'
+            part = torch.nn.Tanh()
+            layer[tag] = part
+            pass
         self.layer = torch.nn.ModuleDict(layer).to(self.device)
         return(True)
 
     def getFeedback(
         self, x: torch.Tensor, t: torch.Tensor
     ) -> torch.Tensor:
-        b, l, c, h, w = x.shape
-        
-
-        
-        x = self.layer['(1) position'](x)
-        x = x.masked_fill(m.unsqueeze(-1), 0)
-        a = self.layer['(2) attention'](x, m)
-        p = self.layer['(3) edge'](a, m)
-
-
-        x = x.reshape(n*l, c, h, w)
-        e = []
-        for f in self.layer['eye']:
-            x = f(x)
-            e += [x]
-            continue
-        x = e.pop()
-        # x = self.layer['encoder'](x)
-        x = x.reshape(n, l, self.embedding, 1, 1)
-        x = x.flatten(2)
-        x = self.layer['position'](x)
-        x = self.layer['norm'](x)
-        x = self.layer['attention'](
-            x, src_key_padding_mask=m, is_causal=None
-        )
-        # x = x.unsqueeze(-1).unsqueeze(-1)
-        x = x.reshape(n*l, self.embedding, 1, 1)
-        e.reverse()
-        for i, f in enumerate(self.layer['hand']):
-            x = torch.cat([f(x), e[i]], dim=1)
-            continue
-        x = self.layer['pixel'](x)
-        y = x.reshape(n, l, c, h, w)
-        # y = x
+        # x: b, c, h, w
+        # t: b
+        m = []
+        x = self.layer['(1) convolution'](x)
+        x = x + self.layer['(1) embedding'](t)[:,:,None,None]
+        m += [x]
+        x = self.layer['(2) convolution'](x)
+        x = x + self.layer['(2) embedding'](t)[:,:,None,None]
+        m += [x]
+        x = self.layer['(3) convolution'](x)
+        x = x + self.layer['(3) embedding'](t)[:,:,None,None]
+        m += [x]
+        l = m.pop()
+        assert isinstance(l, torch.Tensor)
+        l = l.flatten(2, -1)
+        # l.shape
+        l = self.layer[f'(4) position'](l)
+        # atten
+        a = self.layer[f'(5) attention'](l)
+        # add noise
+        a = a + torch.randn_like(a)
+        h, w = 16, 16
+        x = einops.rearrange(a, 'b l (h w) -> b l h w', h=h, w=w)
+        x = self.layer['(6) convolution'](x)
+        x = x + self.layer['(6) embedding'](t)[:,:,None,None]
+        x = torch.cat([x, m[-1]], dim=1)
+        x = self.layer['(7) convolution'](x)
+        x = x + self.layer['(7) embedding'](t)[:,:,None,None]
+        x = torch.cat([x, m[-2]], dim=1)
+        x = self.layer['(8) convolution'](x)
+        x = x + self.layer['(8) embedding'](t)[:,:,None,None]
+        x = x + self.layer['(9) projection'](x)
+        y = self.layer['(10) projection'](x)
         return(y)
     
     forward = getFeedback

@@ -12,7 +12,7 @@ class Position(torch.nn.Module):
         return
     
     def initiateLayer(self) -> bool:
-        layer = {}
+        # layer = {}
         code = torch.zeros(self.length, self.dimension)
         sequence = torch.arange(
             0, self.length, dtype=torch.float
@@ -24,18 +24,20 @@ class Position(torch.nn.Module):
         code[:, 0::2] = torch.sin(sequence * term)
         code[:, 1::2] = torch.cos(sequence * term)
         code = code.to(self.device)#.unsqueeze(0).to(self.device)
-        if(self.trainable):
-            layer['(1) code'] = torch.nn.Parameter(code, requires_grad=True)
-            self.layer = torch.nn.ParameterDict(layer)
-            return(True)
-        layer['(1) code'] = torch.nn.Parameter(code, requires_grad=False)
-        self.layer = torch.nn.ParameterDict(layer) # shape: [max_len, d_model]
+        # if(self.trainable):
+            # layer['(1) code'] = torch.nn.Parameter(code, requires_grad=True)
+            # self.layer = torch.nn.ParameterDict(layer)
+            # self.layer = torch.nn.Parameter(code, requires_grad=True)
+            # return(True)
+        # layer['(1) code'] = torch.nn.Parameter(code, requires_grad=False)
+        # self.layer = torch.nn.ParameterDict(layer) # shape: [max_len, d_model]
+        self.layer = torch.nn.Parameter(code, requires_grad=self.trainable)
         return(True)
     
     def getFeedback(self, x: torch.Tensor) -> torch.Tensor:
         # x: (b, l, d)
         _, l, _ = x.shape
-        y = x + self.layer['(1) code'][None, :l, :]
+        y = x + self.layer[None, :l, :]
         return(y)
 
     forward = getFeedback

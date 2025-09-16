@@ -7,14 +7,14 @@ import functools
 import pandas
 import random
 
-backbone = torchvision.models.mobilenet_v2(
-    weights='MobileNet_V2_Weights.IMAGENET1K_V1'
-)
-model = torch.nn.Sequential(
-    *list(backbone.features.children())[:-1], 
-    torch.nn.AdaptiveAvgPool2d((1,1))
-)
-model.eval()  # 不需要梯度
+# backbone = torchvision.models.mobilenet_v2(
+#     weights='MobileNet_V2_Weights.IMAGENET1K_V1'
+# )
+# model = torch.nn.Sequential(
+#     *list(backbone.features.children())[:-1], 
+#     torch.nn.AdaptiveAvgPool2d((1,1))
+# )
+# model.eval()
 
 def getCollation(queue: list, device: str) -> tuple:
     collection = []
@@ -22,21 +22,15 @@ def getCollation(queue: list, device: str) -> tuple:
     for item in iteration:
         path = item
         video = torchcodec.decoders.VideoDecoder(path)
-        if(len(video)>=1500):
-            lock = random.randint(0, len(video)-1500)
-            video = video[lock:lock+1500]
-            pass
-        length = len(video)
-        if(True):
-            index = random.sample(range(length), 3)
-            index.sort()
-            shot = [
-                video[index[0]], 
-                video[index[1]], 
-                video[index[2]]
-            ]
-            
-            pass
+        domain = len(video)
+        current = random.randint(0, int(domain*0.8))
+        while(True):
+            ceiling = min(current+1+1500, domain)
+            positive = random.randint(current+1, ceiling)
+            negative = random.randint(current+1, ceiling)
+            if(positive!=negative): break
+            _, _ = positive, negative
+            continue
         size = (128, 128)
         getTransform = torchvision.transforms.Compose(
             [
@@ -49,29 +43,29 @@ def getCollation(queue: list, device: str) -> tuple:
                 )
             ]
         )
-        frame = torch.stack(
-            [getTransform(frame) for frame in shot]
-        )# l,c,h,w
-        embedding = model(frame)
-        embedding = embedding.flatten(1, -1)
-
-        timestep = torch.tensor(index)
-        timestep = timestep - min(timestep)
-        collection += [(frame, embedding, timestep)]
+        moment = getTransform(video[current])
+        future = getTransform(video[positive])
+        forgery = getTransform(video[negative])
+        timestep = torch.tensor([positive - current])
+        collection += [(moment, future, forgery, timestep)]
         continue
     _ = iteration
-    frame = torch.stack(
+    moment = torch.stack(
         list(map(lambda item: item[0], collection)), dim=0
     )
-    embedding = torch.stack(
+    future = torch.stack(
         list(map(lambda item: item[1], collection)), dim=0
     )
-    timestep = torch.stack(
+    forgery = torch.stack(
         list(map(lambda item: item[2], collection)), dim=0
     )
+    timestep = torch.cat(
+        list(map(lambda item: item[3], collection))
+    )
     collation = (
-        frame.to(device), 
-        embedding.to(device), 
+        moment.to(device), 
+        future.to(device), 
+        forgery.to(device),
         timestep.to(device)
     )
     return(collation)
