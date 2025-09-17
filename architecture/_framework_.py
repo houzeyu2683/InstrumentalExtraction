@@ -6,8 +6,6 @@ import bitsandbytes
 import torch.utils.tensorboard
 import typing
 import torchvision
-import moviepy
-import numpy
 
 class Dashboard:
 
@@ -44,8 +42,9 @@ class Dashboard:
 
 class Framework:
 
-    def __init__(self, model: torch.nn.Module) -> None:
+    def __init__(self, model: torch.nn.Module, device: str) -> None:
         self.model = model
+        self.device = device
         return
 
     def saveWeight(self, path: str) -> bool:
@@ -65,16 +64,47 @@ class Framework:
         return(True)
 
     def getLoss(
-        self, prediction: torch.Tensor, target: torch.Tensor
+        self, 
+        anchor: torch.Tensor, 
+        positive: torch.Tensor, 
+        negative: torch.Tensor,
+
     ) -> torch.Tensor:
-        criteria = torch.nn.L1Loss()
-        loss = criteria(prediction, target)
+        score = 0
+        if('pixel loss'):
+            criteria = torch.nn.L1Loss()
+            score += criteria(anchor, positive)
+            pass
+        if('embedding loss'):
+            criteria = torch.nn.TripletMarginLoss(margin=1.0, p=2)
+            if(hasattr(self, 'backbone')==False):
+                net = torchvision.models.mobilenet_v2(
+                    weights='MobileNet_V2_Weights.IMAGENET1K_V1'
+                )
+                backbone = torch.nn.Sequential(
+                    *list(net.features.children())[:-1], 
+                    torch.nn.AdaptiveAvgPool2d((1,1)),
+                    torch.nn.Flatten(1, -1)
+                )
+                backbone.eval()
+                for param in backbone.parameters():
+                    param.requires_grad = False
+                    continue
+                self.backbone = backbone.to(self.device)
+                pass
+            distance = criteria(
+                self.backbone(anchor), 
+                self.backbone(positive), 
+                self.backbone(negative)
+            )
+            score += distance
+            pass
+        loss = score
         return(loss)
 
     def fitWeight(
         self, 
         data: torch.utils.data.DataLoader,
-        device: str, 
         accumulation: int, 
         end: int,
         history: str
@@ -89,10 +119,11 @@ class Framework:
         self.model.train()
         iteration = enumerate(itertools.cycle(data), 1)
         for step, batch in iteration:
-            x, m, t = batch
-            with torch.amp.autocast(device):
-                y = self.model(x, m)
-                loss = self.getLoss(y, t) / accumulation  # 分攤梯度
+            # moment, future, forgery, timestep = batch
+            x, p, n, t = batch
+            with torch.amp.autocast(self.device):
+                y = self.model(x, t)
+                loss = self.getLoss(y, p-x, n-x) / accumulation  # 分攤梯度
                 pass
             gradient.scale(loss).backward()
             update = (step%accumulation)==0
@@ -108,10 +139,10 @@ class Framework:
             snapshot = (step%5000)==0
             if(snapshot):
                 dashboard.insertPicture(
-                    'Train/Gradient Prediction', y[:,1,:,:,:], step
+                    'Train/Gradient Prediction', x[:16,:,:,:]+y[:16,:,:,:], step
                 )
                 dashboard.insertPicture(
-                    'Train/Gradient Truth', t[:,1,:,:,:], step
+                    'Train/Gradient Truth', p[:16,:,:,:], step
                 )
                 checkpoint = os.path.join(history, f'weight/{step}.pt')
                 self.saveWeight(path=checkpoint)
@@ -122,36 +153,36 @@ class Framework:
         _ = iteration
         return(True)
 
-    def saveInference(
-        self, 
-        video: torch.Tensor, 
-        path: str,
-        step: int, 
-        device: str
-    ) -> bool:
-        self.model.eval()
-        iteration = range(step)
-        for index in iteration:
-            if(index==0):
-                l = len(video)
-                x = video[None, :, :, :, :]
-                m = torch.tensor([[False]*l]).to(device)
-                pass
-            y = self.model(x, m)[:, -1, :, :, :]
-            f = x[:, -1, :, :, :] + y
-            l = l + 1
-            x = torch.cat([x, f[:, None, :, :, :]], dim=1)
-            m = torch.tensor([[False]*l]).to(device)
-            continue
-        _ = iteration
-        # inference = x.squeeze(0)
-        getImage = torchvision.transforms.ToPILImage()
-        sequence = [numpy.array(getImage(f)) for f in x.squeeze(0)]
+    # def saveInference(
+    #     self, 
+    #     video: torch.Tensor, 
+    #     path: str,
+    #     step: int, 
+    #     device: str
+    # ) -> bool:
+    #     self.model.eval()
+    #     iteration = range(step)
+    #     for index in iteration:
+    #         if(index==0):
+    #             l = len(video)
+    #             x = video[None, :, :, :, :]
+    #             m = torch.tensor([[False]*l]).to(device)
+    #             pass
+    #         y = self.model(x, m)[:, -1, :, :, :]
+    #         f = x[:, -1, :, :, :] + y
+    #         l = l + 1
+    #         x = torch.cat([x, f[:, None, :, :, :]], dim=1)
+    #         m = torch.tensor([[False]*l]).to(device)
+    #         continue
+    #     _ = iteration
+    #     # inference = x.squeeze(0)
+    #     getImage = torchvision.transforms.ToPILImage()
+    #     sequence = [numpy.array(getImage(f)) for f in x.squeeze(0)]
         
-        inference = moviepy.ImageSequenceClip(sequence, 25)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        inference.write_videofile(path, codec="libx264", audio=False)
-        return(True)
+    #     inference = moviepy.ImageSequenceClip(sequence, 25)
+    #     os.makedirs(os.path.dirname(path), exist_ok=True)
+    #     inference.write_videofile(path, codec="libx264", audio=False)
+    #     return(True)
 
     pass
 

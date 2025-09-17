@@ -3,6 +3,8 @@
 *.mp4
 *.mkv
 *.csv
+*.pt
+*tfevents*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

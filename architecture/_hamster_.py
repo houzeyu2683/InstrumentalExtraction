@@ -145,7 +145,7 @@ class Hamster(torch.nn.Module):
 
     def getFeedback(
         self, x: torch.Tensor, t: torch.Tensor
-    ) -> torch.Tensor:
+    ) -> tuple[torch.Tensor]:
         # x: b, c, h, w
         # t: b
         m = []

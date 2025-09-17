@@ -12,7 +12,8 @@ import random
 # )
 # model = torch.nn.Sequential(
 #     *list(backbone.features.children())[:-1], 
-#     torch.nn.AdaptiveAvgPool2d((1,1))
+#     torch.nn.AdaptiveAvgPool2d((1,1)),
+#     torch.nn.Flatten(1, -1)
 # )
 # model.eval()
 
@@ -23,14 +24,15 @@ def getCollation(queue: list, device: str) -> tuple:
         path = item
         video = torchcodec.decoders.VideoDecoder(path)
         domain = len(video)
-        current = random.randint(0, int(domain*0.8))
+        floor = random.randint(0, int(domain*0.8))
         while(True):
-            ceiling = min(current+1+1500, domain)
-            positive = random.randint(current+1, ceiling)
-            negative = random.randint(current+1, ceiling)
-            if(positive!=negative): break
-            _, _ = positive, negative
+            ceiling = min(floor+1+1500, domain-1)
+            destination = random.randint(floor+1, ceiling)
+            deviation = random.randint(floor+1, ceiling)
+            if(destination!=deviation): break
+            _, _ = destination, deviation
             continue
+        outset = floor
         size = (128, 128)
         getTransform = torchvision.transforms.Compose(
             [
@@ -43,30 +45,42 @@ def getCollation(queue: list, device: str) -> tuple:
                 )
             ]
         )
-        moment = getTransform(video[current])
-        future = getTransform(video[positive])
-        forgery = getTransform(video[negative])
-        timestep = torch.tensor([positive - current])
-        collection += [(moment, future, forgery, timestep)]
+        anchor = getTransform(video[outset])
+        positive = getTransform(video[destination])
+        negative = getTransform(video[deviation])
+        timestep = torch.tensor([destination - outset])
+        collection += [(anchor, positive, negative, timestep)]
         continue
     _ = iteration
-    moment = torch.stack(
+    anchor = torch.stack(
         list(map(lambda item: item[0], collection)), dim=0
-    )
-    future = torch.stack(
-        list(map(lambda item: item[1], collection)), dim=0
-    )
-    forgery = torch.stack(
-        list(map(lambda item: item[2], collection)), dim=0
-    )
+    ).to(device)
+    if('positive'):
+        image = torch.stack(
+            list(map(lambda item: item[1], collection)), dim=0
+        )
+        # embedding = model(image)
+        # assert isinstance(embedding, torch.Tensor)
+        # positive = (image.to(device), embedding.to(device))
+        positive = image.to(device)
+        pass
+    if('negative'):
+        image = torch.stack(
+            list(map(lambda item: item[2], collection)), dim=0
+        )
+        # embedding = model(image)
+        # assert isinstance(embedding, torch.Tensor)
+        # negative = (image.to(device), embedding.to(device))
+        negative = image.to(device)
+        pass
     timestep = torch.cat(
         list(map(lambda item: item[3], collection))
-    )
+    ).to(device)
     collation = (
-        moment.to(device), 
-        future.to(device), 
-        forgery.to(device),
-        timestep.to(device)
+        anchor, 
+        positive, 
+        negative,
+        timestep
     )
     return(collation)
 
